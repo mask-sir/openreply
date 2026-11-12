@@ -2,6 +2,7 @@ import { createDMWorker } from "@/lib/queue/dm-worker";
 import { recordWorkerHeartbeat } from "@/lib/ops/worker-health";
 import { reconcileComments } from "@/lib/polling/comment-reconciler";
 import { attachPendingNextReels } from "@/lib/automation/attach-next-reel";
+import { startHealthServer } from "./health-server";
 import os from "node:os";
 
 const worker = createDMWorker();
@@ -14,6 +15,12 @@ const POLL_INTERVAL_MS = Number(
 );
 
 console.log("[DM Worker] Started");
+
+// Only binds when PORT/WORKER_HEALTH_PORT is set (see health-server.ts).
+const healthServer = startHealthServer({
+  isHealthy: () => worker.isRunning(),
+  startedAt,
+});
 
 async function heartbeat() {
   try {
@@ -52,6 +59,7 @@ async function shutdown(signal: string) {
   console.log(`[DM Worker] ${signal} received, closing worker`);
   clearInterval(heartbeatTimer);
   clearInterval(pollTimer);
+  healthServer?.close();
   await worker.close();
   process.exit(0);
 }
