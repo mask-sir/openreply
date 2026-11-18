@@ -964,7 +964,14 @@ export async function subscribeInstagramAccountToWebhooks(
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        subscribed_fields: ["comments", "messages"],
+        // messaging_postbacks carries button taps (entry.messaging[].postback),
+        // which parsePostbackEvents reads and the follow gate depends on. It is
+        // a separate field from messages: tapping a postback button renders the
+        // button title in the thread but sends a postback, never a message. An
+        // account subscribed only to comments and messages therefore receives
+        // the follow prompt and nothing else — the button does nothing, with no
+        // webhook, no DmLog row and no error anywhere to explain it.
+        subscribed_fields: ["comments", "messages", "messaging_postbacks"],
       }),
     }
   );
